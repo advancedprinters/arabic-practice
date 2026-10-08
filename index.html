@@ -154,7 +154,16 @@ async function fullFlushUpdate(){
   location.replace(fresh);
 }
 refresh.addEventListener('contextmenu',e=>e.preventDefault());
-refresh.onclick=e=>{e.preventDefault();fullFlushUpdate()};
+let updateStarted=false;
+function triggerFullUpdate(e){
+  if(e)e.preventDefault();
+  if(updateStarted)return;
+  updateStarted=true;
+  fullFlushUpdate();
+}
+refresh.addEventListener('touchstart',triggerFullUpdate,{passive:false});
+refresh.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch')triggerFullUpdate(e)});
+refresh.onclick=triggerFullUpdate;
 async function checkForAppUpdate(){
   try{
     let r=await fetch('version.txt?ts='+Date.now(),{cache:'no-store'});
