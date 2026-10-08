@@ -26,7 +26,7 @@
 <section id="challenge"><div class="box"><b id="qtype">Challenge</b><h3 id="qprompt"></h3><div id="choices"></div><p id="feedback"></p><div class="row" style="grid-template-columns:1fr 1fr"><button class="btn" id="qhear">🔊 Hear</button><button class="btn primary" id="qnext">Next</button></div></div></section>
 <section id="progress"><div class="box"><b>Your saved phrases</b><div id="saved"></div></div><button class="btn" id="reset">Reset progress on this phone</button></section>
 </div><script>
-const APP_BUILD='2026.10.08.4';
+const APP_BUILD='2026.10.08.5';
 const CONV_LANGS={auto:{name:'Auto detect',code:'',api:'auto'},en:{name:'English',code:'en-US',api:'en'},ar:{name:'Arabic',code:'ar-SA',api:'ar'},el:{name:'Greek',code:'el-GR',api:'el'},es:{name:'Spanish',code:'es-ES',api:'es'}};
 function detectConvLanguage(text){let t=(text||'').trim();if(/[\u0600-\u06FF]/.test(t))return 'ar';if(/[\u0370-\u03FF]/.test(t))return 'el';if(/[áéíóúñü¿¡]/i.test(t))return 'es';let w=' '+t.toLowerCase().replace(/[^a-záéíóúñü]+/g,' ')+' ';let es=[' el ',' la ',' los ',' las ',' de ',' que ',' y ',' en ',' un ',' una ',' por ',' para ',' con ',' no ',' sí ',' gracias ',' hola ',' como ',' cómo ',' donde ',' dónde ',' quiero ',' necesito ',' tengo ',' estoy ',' eres ',' es '];let en=[' the ',' and ',' is ',' are ',' you ',' i ',' to ',' of ',' in ',' for ',' with ',' yes ',' no ',' hello ',' thanks ',' where ',' want ',' need ',' have ',' am '];let se=es.filter(x=>w.includes(x)).length,ee=en.filter(x=>w.includes(x)).length;return se>ee?'es':'en'}
 const DATA={ar:{name:'Arabic',code:'ar-SA',api:'ar',rtl:true,words:[['hello','مرحبا','marhaba'],['thank you','شكراً','shukran'],['please','من فضلك','min fadlak'],['yes','نعم','na’am'],['no','لا','la'],['water','ماء','maa’'],['food','طعام','ta’am'],['friend','صديق','sadeeq'],['book','كتاب','kitab'],['car','سيارة','sayyara'],['family','عائلة','a’ila'],['love','حب','hubb'],['peace','سلام','salam'],['coffee','قهوة','qahwa'],['house','بيت','bayt']],sentences:[['How are you?','كيف حالك؟','kayfa haaluk?'],['I am fine, thank you','أنا بخير، شكراً','ana bikhayr, shukran'],['Where is the bathroom?','أين الحمام؟','ayna al-hammam?'],['I do not understand','لا أفهم','la afham'],['How much is this?','كم هذا؟','kam hadha?'],['Please speak slowly','من فضلك تكلم ببطء','min fadlak takallam bibut’'],['I would like coffee','أريد قهوة','ureedu qahwa'],['Goodbye','مع السلامة','ma’a as-salama']]},es:{name:'Spanish',code:'es-ES',api:'es',rtl:false,words:[['hello','hola','OH-lah'],['thank you','gracias','GRAH-syahs'],['please','por favor','por fah-VOR'],['yes','sí','see'],['no','no','noh'],['water','agua','AH-gwah'],['food','comida','koh-MEE-dah'],['friend','amigo','ah-MEE-goh'],['book','libro','LEE-broh'],['car','coche','KOH-cheh'],['family','familia','fah-MEE-lyah'],['love','amor','ah-MOR'],['coffee','café','kah-FEH'],['house','casa','KAH-sah'],['beautiful','bonito','boh-NEE-toh']],sentences:[['How are you?','¿Cómo estás?','KOH-moh ehs-TAHS'],['I am fine, thank you','Estoy bien, gracias','ehs-TOY byen GRAH-syahs'],['Where is the bathroom?','¿Dónde está el baño?','DON-deh ehs-TAH el BAH-nyoh'],['I do not understand','No entiendo','noh en-TYEN-doh'],['How much is this?','¿Cuánto cuesta esto?','KWAHN-toh KWEHS-tah EHS-toh'],['Please speak slowly','Por favor, habla despacio','por fah-VOR AH-blah dehs-PAH-syoh'],['I would like coffee','Quisiera café','kee-SYEH-rah kah-FEH'],['Goodbye','Adiós','ah-DYOS']]}};
@@ -89,7 +89,53 @@ function convSpeak(text,langCode){if(!text)return;speechSynthesis.cancel();let u
 async function convTranslate(text,from,to){if(from==='auto')from=detectConvLanguage(text);if(from===to)return text;let r=await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair='+from+'|'+to+'&_='+Date.now(),{cache:'no-store'});let j=await r.json(),out=(j.responseData&&j.responseData.translatedText||'').trim();if(!out)throw new Error('Translation failed');return out}
 function addConvLine(who,said,translated,from,to){if(convLog.querySelector('.note'))convLog.innerHTML='';let d=document.createElement('div');d.className='convline';d.innerHTML='<div class="who">'+who+' · '+CONV_LANGS[from].name+' → '+CONV_LANGS[to].name+'</div><div class="said"></div><div class="translated"></div>';d.querySelector('.said').textContent=said;d.querySelector('.translated').textContent=translated;convLog.prepend(d)}
 function stopConvRecognition(){try{if(convRecognition)convRecognition.stop()}catch(e){}convRecognition=null;talkA.classList.remove('listening');talkB.classList.remove('listening')}
-function startConversationMic(side){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){convStatus.textContent='Speech recognition is not available here. Open the same Language Coach link in Safari and allow microphone access.';return}stopConvRecognition();let from=side==='A'?convA.value:convB.value,to=side==='A'?convB.value:(convA.value==='auto'?'en':convA.value),btn=side==='A'?talkA:talkB,hintLang=convRecognitionHint(from,to);let r=new SR();convRecognition=r;r.lang=CONV_LANGS[hintLang].code;r.interimResults=false;r.continuous=false;r.maxAlternatives=3;btn.classList.add('listening');convStatus.textContent=(from==='auto'?'Listening · auto mode, using '+CONV_LANGS[hintLang].name+' recognition…':'Listening in '+CONV_LANGS[from].name+'…');r.onresult=async e=>{let res=e.results[0],best=res[0];for(let n=1;n<res.length;n++){if((res[n].confidence||0)>(best.confidence||0))best=res[n]}let text=best.transcript,confidence=Number(best.confidence||0),detected=from==='auto'?detectConvLanguage(text):from;if(from==='auto'){convAutoLang=detected;try{localStorage.setItem('languageCoachConvAutoLang',detected)}catch(_){}}convStatus.textContent='Translating…';try{let out=await convTranslate(text,detected,to);convLastTranslation=out;convLastLang=to;addConvLine(side==='A'?'You':'Other person',text,out,detected,to);let pct=confidence>0?Math.round(confidence*100):null;convStatus.textContent='Detected '+CONV_LANGS[detected].name+(pct?' · '+pct+'% speech confidence':'')+(pct&&pct<65?' · low confidence, tap again if wording is wrong':'')+' · tap the other microphone to reply';convSpeak(out,to)}catch(err){convStatus.textContent='Could not translate. Check your internet connection.'}};r.onerror=e=>{convStatus.textContent=e.error==='not-allowed'?'Microphone permission is blocked. Allow microphone access in Safari settings.':e.error==='no-speech'?'I did not hear speech. Tap the microphone and try again.':'Speech recognition error: '+e.error+'. Tap and try again.'};r.onend=()=>{btn.classList.remove('listening');if(convRecognition===r)convRecognition=null};try{r.start()}catch(e){btn.classList.remove('listening');convStatus.textContent='Microphone could not start. Try again.'}}
+function startConversationMic(side){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){convStatus.textContent='Speech recognition is not available here. Open the same Language Coach link in Safari and allow microphone access.';return}
+  if(convRecognition){stopConvRecognition();convStatus.textContent='Listening stopped.';return}
+  let from=side==='A'?convA.value:convB.value,
+      to=side==='A'?convB.value:(convA.value==='auto'?'en':convA.value),
+      btn=side==='A'?talkA:talkB,
+      hintLang=convRecognitionHint(from,to),
+      r=new SR(), finalText='';
+  convRecognition=r;
+  r.lang=CONV_LANGS[hintLang].code;
+  r.interimResults=true;
+  r.continuous=true;
+  r.maxAlternatives=3;
+  btn.classList.add('listening');
+  btn.textContent='⏹ Stop listening';
+  convStatus.textContent=(from==='auto'?'Listening · '+CONV_LANGS[hintLang].name+' recognition hint…':'Listening in '+CONV_LANGS[from].name+'…')+' Speak naturally.';
+  r.onresult=async e=>{
+    let interim='',latestFinal='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      let res=e.results[i],best=res[0];
+      for(let n=1;n<res.length;n++)if((res[n].confidence||0)>(best.confidence||0))best=res[n];
+      if(res.isFinal){latestFinal+=(best.transcript||'')+' ';finalText+=(best.transcript||'')+' '}else interim+=(best.transcript||'')+' ';
+    }
+    let live=(finalText+interim).trim();
+    if(live)convStatus.textContent='Hearing: '+live;
+    if(!latestFinal.trim())return;
+    let text=latestFinal.trim(),detected=from==='auto'?detectConvLanguage(text):from;
+    if(from==='auto'){convAutoLang=detected;try{localStorage.setItem('languageCoachConvAutoLang',detected)}catch(_){}}
+    try{
+      let out=await convTranslate(text,detected,to);
+      convLastTranslation=out;convLastLang=to;
+      addConvLine(side==='A'?'You':'Other person',text,out,detected,to);
+      convStatus.textContent='Listening · '+CONV_LANGS[detected].name+' detected · keep speaking or tap Stop';
+    }catch(err){convStatus.textContent='Listening, but translation failed. Keep speaking or check internet.'}
+  };
+  r.onerror=e=>{
+    if(e.error==='not-allowed')convStatus.textContent='Microphone permission is blocked. Allow microphone access in Safari settings.';
+    else if(e.error!=='aborted'&&e.error!=='no-speech')convStatus.textContent='Speech recognition error: '+e.error+'. Tap and try again.';
+  };
+  r.onend=()=>{
+    btn.classList.remove('listening');btn.textContent=side==='A'?'🎙️ You speak':'🎙️ Other person';
+    if(convRecognition===r)convRecognition=null;
+    if(finalText.trim())convStatus.textContent='Stopped · translation is in the conversation below.';
+  };
+  try{r.start()}catch(e){btn.classList.remove('listening');btn.textContent=side==='A'?'🎙️ You speak':'🎙️ Other person';convRecognition=null;convStatus.textContent='Microphone could not start. Try again.'}
+}
 let lastTouchAction=0;function bindTouchButton(el,fn){el.addEventListener('touchstart',e=>{el.classList.add('pressed')},{passive:true});el.addEventListener('touchcancel',()=>el.classList.remove('pressed'));el.addEventListener('touchend',e=>{e.preventDefault();el.classList.remove('pressed');lastTouchAction=Date.now();fn()},{passive:false});el.addEventListener('click',e=>{if(Date.now()-lastTouchAction<700){e.preventDefault();return}fn()})}
 bindTouchButton(talkA,()=>startConversationMic('A'));bindTouchButton(talkB,()=>startConversationMic('B'));bindTouchButton(swapConv,()=>{let a=convA.value,b=convB.value;if(a==='auto'){convA.value=b;convB.value='en'}else{convA.value=b;convB.value=a}convStatus.textContent='Languages swapped.'});bindTouchButton(replayConv,()=>convSpeak(convLastTranslation,convLastLang));bindTouchButton(clearConv,()=>{stopConvRecognition();convLog.innerHTML='<p class="note">Your translated conversation will appear here.</p>';convLastTranslation='';convStatus.textContent='Conversation cleared.'});
 
