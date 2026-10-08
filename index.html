@@ -119,7 +119,9 @@ function beginRefreshHold(e){
   },5000);
 }
 refresh.addEventListener('pointerdown',beginRefreshHold);
-['pointerup','pointerleave','pointercancel'].forEach(ev=>refresh.addEventListener(ev,cancelRefreshHold));
+refresh.addEventListener('pointerup',cancelRefreshHold);
+refresh.addEventListener('pointerleave',e=>{if(!refresh.classList.contains('holding'))cancelRefreshHold()});
+refresh.addEventListener('pointercancel',e=>{if(!refresh.classList.contains('holding'))cancelRefreshHold()});
 refresh.addEventListener('contextmenu',e=>e.preventDefault());
 refresh.onclick=e=>e.preventDefault();
 lang.value=language;lang.onchange=async()=>{language=lang.value;await loadExpandedVocabulary(language);translateTitle.textContent='English → '+DATA[language].name;i=0;render();buildQuick();quiz();newWritingWord();saveState()};window.addEventListener('pageshow',e=>{if(e.persisted)location.reload()});window.addEventListener('load',()=>{fitCanvas();fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).catch(()=>{})});(async()=>{await loadExpandedVocabulary(language);translateTitle.textContent='English → '+DATA[language].name;render();buildQuick();quiz();newWritingWord();stats()})();
