@@ -26,6 +26,7 @@
 <section id="challenge"><div class="box"><b id="qtype">Challenge</b><h3 id="qprompt"></h3><div id="choices"></div><p id="feedback"></p><div class="row" style="grid-template-columns:1fr 1fr"><button class="btn" id="qhear">🔊 Hear</button><button class="btn primary" id="qnext">Next</button></div></div></section>
 <section id="progress"><div class="box"><b>Your saved phrases</b><div id="saved"></div></div><button class="btn" id="reset">Reset progress on this phone</button></section>
 </div><script>
+const APP_BUILD='2026.10.08.1';
 const CONV_LANGS={auto:{name:'Auto detect',code:'',api:'auto'},en:{name:'English',code:'en-US',api:'en'},ar:{name:'Arabic',code:'ar-SA',api:'ar'},el:{name:'Greek',code:'el-GR',api:'el'},es:{name:'Spanish',code:'es-ES',api:'es'}};
 function detectConvLanguage(text){let t=(text||'').trim();if(/[\u0600-\u06FF]/.test(t))return 'ar';if(/[\u0370-\u03FF]/.test(t))return 'el';if(/[áéíóúñü¿¡]/i.test(t))return 'es';return 'en'}
 const DATA={ar:{name:'Arabic',code:'ar-SA',api:'ar',rtl:true,words:[['hello','مرحبا','marhaba'],['thank you','شكراً','shukran'],['please','من فضلك','min fadlak'],['yes','نعم','na’am'],['no','لا','la'],['water','ماء','maa’'],['food','طعام','ta’am'],['friend','صديق','sadeeq'],['book','كتاب','kitab'],['car','سيارة','sayyara'],['family','عائلة','a’ila'],['love','حب','hubb'],['peace','سلام','salam'],['coffee','قهوة','qahwa'],['house','بيت','bayt']],sentences:[['How are you?','كيف حالك؟','kayfa haaluk?'],['I am fine, thank you','أنا بخير، شكراً','ana bikhayr, shukran'],['Where is the bathroom?','أين الحمام؟','ayna al-hammam?'],['I do not understand','لا أفهم','la afham'],['How much is this?','كم هذا؟','kam hadha?'],['Please speak slowly','من فضلك تكلم ببطء','min fadlak takallam bibut’'],['I would like coffee','أريد قهوة','ureedu qahwa'],['Goodbye','مع السلامة','ma’a as-salama']]},es:{name:'Spanish',code:'es-ES',api:'es',rtl:false,words:[['hello','hola','OH-lah'],['thank you','gracias','GRAH-syahs'],['please','por favor','por fah-VOR'],['yes','sí','see'],['no','no','noh'],['water','agua','AH-gwah'],['food','comida','koh-MEE-dah'],['friend','amigo','ah-MEE-goh'],['book','libro','LEE-broh'],['car','coche','KOH-cheh'],['family','familia','fah-MEE-lyah'],['love','amor','ah-MOR'],['coffee','café','kah-FEH'],['house','casa','KAH-sah'],['beautiful','bonito','boh-NEE-toh']],sentences:[['How are you?','¿Cómo estás?','KOH-moh ehs-TAHS'],['I am fine, thank you','Estoy bien, gracias','ehs-TOY byen GRAH-syahs'],['Where is the bathroom?','¿Dónde está el baño?','DON-deh ehs-TAH el BAH-nyoh'],['I do not understand','No entiendo','noh en-TYEN-doh'],['How much is this?','¿Cuánto cuesta esto?','KWAHN-toh KWEHS-tah EHS-toh'],['Please speak slowly','Por favor, habla despacio','por fah-VOR AH-blah dehs-PAH-syoh'],['I would like coffee','Quisiera café','kee-SYEH-rah kah-FEH'],['Goodbye','Adiós','ah-DYOS']]}};
@@ -124,5 +125,20 @@ refresh.addEventListener('pointerleave',e=>{if(!refresh.classList.contains('hold
 refresh.addEventListener('pointercancel',e=>{if(!refresh.classList.contains('holding'))cancelRefreshHold()});
 refresh.addEventListener('contextmenu',e=>e.preventDefault());
 refresh.onclick=e=>e.preventDefault();
-lang.value=language;lang.onchange=async()=>{language=lang.value;await loadExpandedVocabulary(language);translateTitle.textContent='English → '+DATA[language].name;i=0;render();buildQuick();quiz();newWritingWord();saveState()};window.addEventListener('pageshow',e=>{if(e.persisted)location.reload()});window.addEventListener('load',()=>{fitCanvas();fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).catch(()=>{})});(async()=>{await loadExpandedVocabulary(language);translateTitle.textContent='English → '+DATA[language].name;render();buildQuick();quiz();newWritingWord();stats()})();
+async function checkForAppUpdate(){
+  try{
+    let r=await fetch('version.txt?ts='+Date.now(),{cache:'no-store'});
+    let latest=(await r.text()).trim();
+    if(latest&&latest!==APP_BUILD){
+      try{
+        if('serviceWorker' in navigator){let regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(x=>x.unregister()))}
+        if('caches' in window){let names=await caches.keys();await Promise.all(names.map(n=>caches.delete(n)))}
+      }catch(e){}
+      location.replace((location.pathname||'/')+'?update='+Date.now()+'&fresh=1');
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+lang.value=language;lang.onchange=async()=>{language=lang.value;await loadExpandedVocabulary(language);translateTitle.textContent='English → '+DATA[language].name;i=0;render();buildQuick();quiz();newWritingWord();saveState()};window.addEventListener('pageshow',e=>{if(e.persisted)location.reload()});window.addEventListener('load',async()=>{fitCanvas();await checkForAppUpdate();fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).catch(()=>{})});(async()=>{await loadExpandedVocabulary(language);translateTitle.textContent='English → '+DATA[language].name;render();buildQuick();quiz();newWritingWord();stats()})();
 </script></body></html>
