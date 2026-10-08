@@ -16,7 +16,7 @@
 </style>
 </head><body><div class="app">
 <div class="top"><div><h1>Language Coach</h1><div class="sub">Learn · Hear · Translate · Converse · Write · Challenge</div></div><button class="btn" id="share">Share</button></div>
-<div class="langbar"><select id="lang"><option value="ar">Arabic</option><option value="el">Greek</option><option value="es">Spanish</option></select><button class="btn" id="refresh" aria-label="Hold for 5 seconds to update">↻ Update</button></div>
+<div class="langbar"><select id="lang"><option value="ar">Arabic</option><option value="el">Greek</option><option value="es">Spanish</option></select><button class="btn" id="refresh" aria-label="Hold for 2 seconds to update">↻ Update</button></div>
 <div class="stats"><div class="stat"><b id="streak">0</b><span>day streak</span></div><div class="stat"><b id="count">0</b><span>practiced</span></div><div class="stat"><b id="score">0%</b><span>challenge</span></div></div>
 <nav><button class="on" data-v="learn">Learn</button><button data-v="translate">Translate</button><button data-v="conversation">Converse</button><button data-v="write">Write</button><button data-v="challenge">Challenge</button><button data-v="progress">Progress</button></nav>
 <section id="learn" class="on"><div class="tabs"><button class="on" data-d="words">Words</button><button data-d="sentences">Sentences</button></div><div class="card" id="learnCard"><div class="target" id="target"></div><div class="trans" id="phonetic"></div><div class="meaning hidden" id="meaning"></div><div class="note" id="hint"></div></div><div class="breakdown hidden" id="arabicBreakdown"><div class="breakdown-title"><b>🔎 Build this word</b><span>Swipe letters ↔</span></div><div class="letterstrip" id="letterStrip"></div><div class="swipehint">Swipe the word card ← / → for previous or next</div></div><div class="sound"><button class="btn" id="hear">🔊 Hear</button><button class="btn" id="slow">🐢 Slow</button></div><div class="row"><button class="btn" id="prev">Prev</button><button class="btn" id="shuffle">Shuffle</button><button class="btn primary" id="next">Next</button></div></section>
@@ -92,7 +92,7 @@ talkA.onclick=()=>startConversationMic('A');talkB.onclick=()=>startConversationM
 
 function quiz(){locked=false;feedback.textContent='';let all=[...DATA[language].words,...DATA[language].sentences].filter(x=>x[0]);qa=all[Math.floor(Math.random()*all.length)];let en=Math.random()<.5;qtype.textContent=en?'Choose the translation':'Choose the English meaning';qprompt.textContent=en?qa[0]:qa[1];let opts=[qa,...all.filter(x=>x!==qa).sort(()=>Math.random()-.5).slice(0,3)].sort(()=>Math.random()-.5);choices.innerHTML='';opts.forEach(x=>{let b=document.createElement('button');b.className='choice';b.textContent=en?x[1]:x[0];b.onclick=()=>{if(locked)return;locked=true;let s=S();s.total++;if(x===qa){s.right++;b.classList.add('good');feedback.textContent='Correct ✓'}else{b.classList.add('bad');[...choices.children].forEach((c,k)=>{if(opts[k]===qa)c.classList.add('good')});feedback.textContent='Review the green answer.'}practiced()};choices.appendChild(b)})}qnext.onclick=quiz;qhear.onclick=()=>qa&&speak(qa[1],true);
 const canvas=writeCanvas,ctx=canvas.getContext('2d');let writingWord=null,trace=true,drawing=false,last=null;function fitCanvas(){let r=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);ctx.lineWidth=5;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#2b2420'}function clearPad(){fitCanvas();ctx.clearRect(0,0,canvas.width,canvas.height)}function point(e){let r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}function startDraw(e){e.preventDefault();drawing=true;last=point(e)}function moveDraw(e){if(!drawing)return;e.preventDefault();let p=point(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p}function endDraw(){if(drawing){drawing=false;practiced()}}canvas.addEventListener('pointerdown',startDraw);canvas.addEventListener('pointermove',moveDraw);window.addEventListener('pointerup',endDraw);function newWritingWord(){let pool=DATA[language].words.filter(x=>x[0]);writingWord=pool[Math.floor(Math.random()*pool.length)];writeEnglish.textContent=writingWord[0];traceHint.textContent=writingWord[1];traceHint.className='tracehint'+(DATA[language].rtl?' rtl':'');trace=true;traceHint.style.display='flex';toggleTrace.textContent='Hide guide';writeStatus.textContent='Trace it, then try from memory.';clearPad()}clearCanvas.onclick=clearPad;newWrite.onclick=newWritingWord;writeHear.onclick=()=>writingWord&&speak(writingWord[1],true);toggleTrace.onclick=()=>{trace=!trace;traceHint.style.display=trace?'flex':'none';toggleTrace.textContent=trace?'Hide guide':'Show guide'};showAnswer.onclick=()=>{if(writingWord){writeStatus.textContent=`Answer: ${writingWord[1]} · ${writingWord[2]}`;traceHint.style.display='flex'}};
-reset.onclick=()=>{if(confirm('Reset progress for both languages on this phone?')){localStorage.removeItem('languageCoach');location.reload()}};share.onclick=async()=>{let d={title:'Language Coach',text:'Practice languages with me',url:location.href};if(navigator.share)try{await navigator.share(d)}catch(e){}else navigator.clipboard.writeText(location.href)};
+reset.onclick=()=>{if(confirm('Reset progress for both languages on this phone?')){localStorage.removeItem('languageCoach');location.reload()}};share.onclick=async()=>{let cleanUrl=location.origin+location.pathname,d={title:'Language Coach',text:'Practice languages with me',url:cleanUrl};if(navigator.share)try{await navigator.share(d)}catch(e){}else navigator.clipboard.writeText(cleanUrl)};
 let refreshHoldTimer=null,refreshTick=null,refreshStart=0,refreshDone=false;
 function cancelRefreshHold(){
   if(refreshHoldTimer)clearTimeout(refreshHoldTimer);
@@ -102,8 +102,8 @@ function cancelRefreshHold(){
 }
 function beginRefreshHold(e){
   if(e)e.preventDefault();
-  refreshDone=false;refreshStart=Date.now();refresh.classList.add('holding');refresh.textContent='Hold 5.0s';
-  refreshTick=setInterval(()=>{let left=Math.max(0,5-(Date.now()-refreshStart)/1000);refresh.textContent='Hold '+left.toFixed(1)+'s'},100);
+  refreshDone=false;refreshStart=Date.now();refresh.classList.add('holding');refresh.textContent='Hold 2.0s';
+  refreshTick=setInterval(()=>{let left=Math.max(0,2-(Date.now()-refreshStart)/1000);refresh.textContent='Hold '+left.toFixed(1)+'s'},100);
   refreshHoldTimer=setTimeout(async()=>{
     refreshDone=true;
     if(refreshTick)clearInterval(refreshTick);
@@ -116,7 +116,7 @@ function beginRefreshHold(e){
     const fresh=base+'?update='+Date.now()+'&fresh=1';
     try{await fetch(fresh,{cache:'reload',headers:{'Cache-Control':'no-cache'}})}catch(e){}
     location.replace(fresh);
-  },5000);
+  },2000);
 }
 refresh.addEventListener('pointerdown',beginRefreshHold);
 refresh.addEventListener('pointerup',cancelRefreshHold);
