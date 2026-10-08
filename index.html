@@ -104,12 +104,18 @@ function beginRefreshHold(e){
   if(e)e.preventDefault();
   refreshDone=false;refreshStart=Date.now();refresh.classList.add('holding');refresh.textContent='Hold 5.0s';
   refreshTick=setInterval(()=>{let left=Math.max(0,5-(Date.now()-refreshStart)/1000);refresh.textContent='Hold '+left.toFixed(1)+'s'},100);
-  refreshHoldTimer=setTimeout(()=>{
+  refreshHoldTimer=setTimeout(async()=>{
     refreshDone=true;
     if(refreshTick)clearInterval(refreshTick);
     refresh.classList.remove('holding');refresh.textContent='Updating…';
+    try{
+      if('serviceWorker' in navigator){let regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister()))}
+      if('caches' in window){let names=await caches.keys();await Promise.all(names.map(n=>caches.delete(n)))}
+    }catch(e){}
     const base=location.pathname||'/';
-    location.replace(base+'?v='+Date.now());
+    const fresh=base+'?update='+Date.now()+'&fresh=1';
+    try{await fetch(fresh,{cache:'reload',headers:{'Cache-Control':'no-cache'}})}catch(e){}
+    location.replace(fresh);
   },5000);
 }
 refresh.addEventListener('pointerdown',beginRefreshHold);
